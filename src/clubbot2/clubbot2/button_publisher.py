@@ -14,7 +14,6 @@ class ButtonPublisher(Node):
 
         # Define buttons with GPIO pins
         self.buttons = {
-            'red': Button(4),
             'green': Button(6),
             'blue': Button(5),
             'yellow': Button(15)
