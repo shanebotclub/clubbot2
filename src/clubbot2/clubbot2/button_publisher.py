@@ -23,12 +23,14 @@ class ButtonPublisher(Node):
         for name, button in self.buttons.items():
             button.when_pressed = lambda n=name: self.button_callback(n)
 
+        # use get_logger() to print info message when the node starts
         self.get_logger().info("Button publisher started")
 
     def button_callback(self, name):
         msg = String()
         msg.data = name
         self.publisher_.publish(msg)
+        # use get_logger() to print info message when a button is pressed as a f string
         self.get_logger().info(f'Button pressed: {name}')
 
 
