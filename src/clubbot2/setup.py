@@ -26,6 +26,7 @@ setup(
         'console_scripts': [ 
              'mpu6050_node = clubbot2.mpu6050_node:main',
              'button_publisher = clubbot2.button_publisher:main',
+             led_subscriber = clubbot2.led_subscriber:main',
         ],
     },
 )
