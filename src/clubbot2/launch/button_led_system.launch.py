@@ -17,7 +17,7 @@ def generate_launch_description():
         ),
         Node(
             package='clubbot2',
-            executable='button_to_led',
+            executable='button_to_led_bridge',
             name='button_to_led',
             output='screen'
         )
