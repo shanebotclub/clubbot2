@@ -4,6 +4,12 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from gpiozero import Button
 
+from gpiozero import Device
+from gpiozero.pins.pigpio import PiGPIOFactory
+
+
+# Force pigpio backend (prevents GPIO busy errors)
+Device.pin_factory = PiGPIOFactory()
 
 class ButtonPublisher(Node):
     def __init__(self):
