@@ -43,7 +43,7 @@ class ButtonToLEDbridge(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = ButtonToLED()
+    node = ButtonToLEDbridge()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
