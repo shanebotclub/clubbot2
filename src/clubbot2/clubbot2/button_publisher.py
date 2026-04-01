@@ -10,7 +10,7 @@ from gpiozero.pins.pigpio import PiGPIOFactory
 
 # Force pigpio backend (prevents GPIO busy errors)
 Device.pin_factory = PiGPIOFactory()
-#check git
+
 class ButtonPublisher(Node):
     def __init__(self):
         super().__init__('button_publisher')
