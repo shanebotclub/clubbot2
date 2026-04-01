@@ -1,2 +1,14 @@
 .vscode/
 .vscode/
+# Arduino build output
+esp32/**/build/
+*.o
+*.a
+*.elf
+*.bin
+*.map
+*.hex
+*.ino.cpp
+
+# VS Code settings
+.vscode/
