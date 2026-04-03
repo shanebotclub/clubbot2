@@ -30,6 +30,7 @@ setup(
              'button_publisher = clubbot2.button_publisher:main',
              'led_subscriber = clubbot2.led_subscriber:main',
              'button_to_led_bridge = clubbot2.button_to_led_bridge:main',
+             'esp32_reader = clubbot2.esp32_reader:main',
              
         ],
     },
