@@ -1,0 +1,84 @@
+ekf_filter_node:
+  ros__parameters:
+
+    # EKF update rate
+    frequency: 50.0
+    sensor_timeout: 0.1
+    two_d_mode: true
+
+    # TF frames
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # ============================================================
+    # ENCODER ODOMETRY (from JointState)
+    # ============================================================
+    odom0: /joint_states
+
+    # JointState fields:
+    # position[0] = left wheel ticks
+    # position[1] = right wheel ticks
+    #
+    # We fuse:
+    #   x, y, yaw
+    #   vx, vyaw
+    #
+    # [x, y, z,
+    #  roll, pitch, yaw,
+    #  vx, vy, vz,
+    #  vroll, vpitch, vyaw]
+    odom0_config: [
+      true,  true,  false,
+      false, false, true,
+      true,  false, false,
+      false, false, true
+    ]
+
+    odom0_differential: false
+    odom0_relative: false
+
+    # ============================================================
+    # IMU (MPU6050)
+    # ============================================================
+    imu0: /imu/data
+
+    # We fuse:
+    #   yaw
+    #   angular velocity (z)
+    #   linear acceleration (x,y)
+    imu0_config: [
+      false, false, false,
+      false, false, true,
+      false, false, false,
+      false, false, true
+    ]
+
+    imu0_differential: false
+    imu0_relative: false
+    imu0_remove_gravitational_acceleration: true
+
+    # ============================================================
+    # NOISE PARAMETERS (tuned for your robot)
+    # ============================================================
+
+    # Process noise (how much the robot can change between updates)
+    process_noise_covariance: [
+      0.05, 0,    0,    0,    0,    0,
+      0,    0.05, 0,    0,    0,    0,
+      0,    0,    0.0,  0,    0,    0,
+      0,    0,    0,    0.01, 0,    0,
+      0,    0,    0,    0,    0.01, 0,
+      0,    0,    0,    0,    0,    0.02
+    ]
+
+    # Encoder odometry noise (ticks → meters)
+    odom0_queue_size: 10
+    odom0_nodelay: false
+
+    # IMU noise (MPU6050 typical values)
+    imu0_queue_size: 10
+    imu0_nodelay: false
+    imu0_linear_acceleration_rejection_threshold: 0.8
+    imu0_angular_velocity_rejection_threshold: 0.8

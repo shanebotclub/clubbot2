@@ -1,0 +1,18 @@
+/**:
+  ros__parameters:
+    robot_name: "ClubBot_Aver"
+
+    wheel_diameter: 0.08
+    wheel_base: 0.175
+
+    left_max_rpm: 107
+    right_max_rpm: 107
+
+    left_ticks_per_rotation: 620
+    right_ticks_per_rotation: 620
+
+    left_forward_pin: 18
+    left_backward_pin: 23
+    right_forward_pin: 24
+    right_backward_pin: 25
+
