@@ -22,11 +22,11 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'esp32_reader = clubbot2.esp32_reader:main',
+            
             'button_publisher = clubbot2.button_publisher:main',
             'button_to_led_bridge = clubbot2.button_to_led_bridge:main',
             'led_subscriber = clubbot2.led_subscriber:main',
-            'mpu6050_node = clubbot2.mpu6050_node:main',
+            
         ],
     },
 )

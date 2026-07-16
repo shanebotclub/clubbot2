@@ -12,3 +12,8 @@ esp32/**/build/
 
 # VS Code settings
 .vscode/
+
+# ROS2 workspace build artifacts
+build/
+install/
+log/
