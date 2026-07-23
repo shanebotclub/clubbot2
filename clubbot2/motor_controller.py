@@ -19,6 +19,8 @@ class MotorController(Node):
         self.declare_parameter('left_backward_pin')
         self.declare_parameter('right_forward_pin')
         self.declare_parameter('right_backward_pin')
+        self.declare_parameter('linear_scale', 1.0)
+        self.declare_parameter('angular_scale', 1.0)
 
         # Read parameters
         self.wheel_diameter = self.get_parameter('wheel_diameter').value
@@ -30,6 +32,8 @@ class MotorController(Node):
         self.left_backward = self.get_parameter('left_backward_pin').value
         self.right_forward = self.get_parameter('right_forward_pin').value
         self.right_backward = self.get_parameter('right_backward_pin').value
+        self.linear_scale = self.get_parameter('linear_scale').value
+        self.angular_scale = self.get_parameter('angular_scale').value
 
         self.get_logger().info("Motor controller parameters loaded successfully.")
 
@@ -62,8 +66,8 @@ class MotorController(Node):
         self.get_logger().info("Motor controller ready and listening to /cmd_vel")
 
     def cmd_vel_callback(self, msg):
-        v = msg.linear.x
-        w = msg.angular.z
+        v = msg.linear.x * self.linear_scale
+        w = msg.angular.z * self.angular_scale
 
         # Differential drive equations
         v_l = v - w * (self.wheel_base / 2.0)

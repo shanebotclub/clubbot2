@@ -16,3 +16,6 @@
     right_forward_pin: 24
     right_backward_pin: 25
 
+    linear_scale: 0.4
+    angular_scale: 2.5
+
