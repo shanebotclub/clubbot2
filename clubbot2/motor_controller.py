@@ -5,25 +5,33 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 import RPi.GPIO as GPIO
 import math
-import yaml
 
 class MotorController(Node):
     def __init__(self):
         super().__init__('motor_controller')
 
-        # Load robot params
-        with open('/home/ubuntu/ros2_ws/src/clubbot/RobotParams.yaml', 'r') as f:
-            params = yaml.safe_load(f)['/**']['ros__parameters']
+        # Declare parameters (ROS2 will load them from RobotParams.yaml)
+        self.declare_parameter('wheel_diameter')
+        self.declare_parameter('wheel_base')
+        self.declare_parameter('left_max_rpm')
+        self.declare_parameter('right_max_rpm')
+        self.declare_parameter('left_forward_pin')
+        self.declare_parameter('left_backward_pin')
+        self.declare_parameter('right_forward_pin')
+        self.declare_parameter('right_backward_pin')
 
-        self.wheel_diameter = params['wheel_diameter']
-        self.wheel_base = params['wheel_base']
-        self.left_max_rpm = params['left_max_rpm']
-        self.right_max_rpm = params['right_max_rpm']
+        # Read parameters
+        self.wheel_diameter = self.get_parameter('wheel_diameter').value
+        self.wheel_base = self.get_parameter('wheel_base').value
+        self.left_max_rpm = self.get_parameter('left_max_rpm').value
+        self.right_max_rpm = self.get_parameter('right_max_rpm').value
 
-        self.left_forward = params['left_forward_pin']
-        self.left_backward = params['left_backward_pin']
-        self.right_forward = params['right_forward_pin']
-        self.right_backward = params['right_backward_pin']
+        self.left_forward = self.get_parameter('left_forward_pin').value
+        self.left_backward = self.get_parameter('left_backward_pin').value
+        self.right_forward = self.get_parameter('right_forward_pin').value
+        self.right_backward = self.get_parameter('right_backward_pin').value
+
+        self.get_logger().info("Motor controller parameters loaded successfully.")
 
         # GPIO setup
         GPIO.setmode(GPIO.BCM)
@@ -32,7 +40,7 @@ class MotorController(Node):
         GPIO.setup(self.right_forward, GPIO.OUT)
         GPIO.setup(self.right_backward, GPIO.OUT)
 
-        # PWM (1 kHz)
+        # PWM setup (1 kHz)
         self.lf_pwm = GPIO.PWM(self.left_forward, 1000)
         self.lb_pwm = GPIO.PWM(self.left_backward, 1000)
         self.rf_pwm = GPIO.PWM(self.right_forward, 1000)
@@ -43,12 +51,15 @@ class MotorController(Node):
         self.rf_pwm.start(0)
         self.rb_pwm.start(0)
 
+        # Subscribe to cmd_vel
         self.subscription = self.create_subscription(
             Twist,
             '/cmd_vel',
             self.cmd_vel_callback,
             10
         )
+
+        self.get_logger().info("Motor controller ready and listening to /cmd_vel")
 
     def cmd_vel_callback(self, msg):
         v = msg.linear.x
@@ -58,11 +69,11 @@ class MotorController(Node):
         v_l = v - w * (self.wheel_base / 2.0)
         v_r = v + w * (self.wheel_base / 2.0)
 
-        # Convert to RPM
+        # Convert linear velocity → RPM
         rpm_l = (v_l / (math.pi * self.wheel_diameter)) * 60.0
         rpm_r = (v_r / (math.pi * self.wheel_diameter)) * 60.0
 
-        # Clamp
+        # Clamp RPM
         rpm_l = max(min(rpm_l, self.left_max_rpm), -self.left_max_rpm)
         rpm_r = max(min(rpm_r, self.right_max_rpm), -self.right_max_rpm)
 
@@ -86,13 +97,23 @@ class MotorController(Node):
             self.rf_pwm.ChangeDutyCycle(0)
             self.rb_pwm.ChangeDutyCycle(duty_r)
 
+    def destroy_node(self):
+        # Stop PWM and clean up GPIO
+        self.lf_pwm.stop()
+        self.lb_pwm.stop()
+        self.rf_pwm.stop()
+        self.rb_pwm.stop()
+        GPIO.cleanup()
+        super().destroy_node()
+
+
 def main(args=None):
-    rclpy.init(args=args)
-    node = MotorController()
-    rclpy.spin(node)
-    node.destroy_node()
-    GPIO.cleanup()
-    rclpy.shutdown()
+        rclpy.init(args=args)
+        node = MotorController()
+        rclpy.spin(node)
+        node.destroy_node()
+        rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
