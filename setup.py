@@ -33,9 +33,9 @@ setup(
         'console_scripts': [
             'motor_controller = clubbot2.motor_controller:main',
             'hardware_interface = clubbot2.hardware_interface:main',
-            # Add more nodes here later:
-            # 'encoder_node = clubbot2.encoder_node:main',
-            # 'bumper_node = clubbot2.bumper_node:main',
+            'button_publisher = clubbot2.button_publisher:main',
+            'led_subscriber = clubbot2.led_subscriber:main',
+            'button_to_led_bridge = clubbot2.button_to_led_bridge:main',
         ],
     },
 )
