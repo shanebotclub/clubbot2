@@ -99,8 +99,8 @@ class MotorController(Node):
         self.right_rpm_actual = 0.0
 
         # PID controllers
-        self.left_pid = PID(1.2, 0.3, 0.05)
-        self.right_pid = PID(1.2, 0.3, 0.05)
+        self.left_pid = PID(0.3, 0.0, 0.0)
+        self.right_pid = PID(0.3, 0.0, 0.0)
 
         # Subscribe to encoder ticks
         self.encoder_sub = self.create_subscription(
