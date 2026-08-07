@@ -6,11 +6,18 @@ import os
 def generate_launch_description():
 
     pkg_share = get_package_share_directory("clubbot2")
+
+    # Load your robot parameters
+    robot_params = os.path.join(pkg_share, "config", "RobotParams.yaml")
+
+    # Load ros2_control config
     control_config = os.path.join(pkg_share, "config", "ros2_control.yaml")
 
     return LaunchDescription([
 
-        # micro-ROS agent
+        # ---------------------------------------------------------
+        # micro-ROS agent (serial transport)
+        # ---------------------------------------------------------
         Node(
             package="micro_ros_agent",
             executable="micro_ros_agent",
@@ -18,7 +25,9 @@ def generate_launch_description():
             output="screen"
         ),
 
+        # ---------------------------------------------------------
         # ros2_control controller manager
+        # ---------------------------------------------------------
         Node(
             package="controller_manager",
             executable="ros2_control_node",
@@ -26,7 +35,9 @@ def generate_launch_description():
             output="screen"
         ),
 
-        # diff drive controller
+        # ---------------------------------------------------------
+        # diff drive controller spawner
+        # ---------------------------------------------------------
         Node(
             package="controller_manager",
             executable="spawner",
@@ -34,10 +45,13 @@ def generate_launch_description():
             output="screen"
         ),
 
-        # PID motor controller
+        # ---------------------------------------------------------
+        # PID motor controller (closed-loop wheel control)
+        # ---------------------------------------------------------
         Node(
             package="clubbot2",
             executable="PID_motor_controller",
+            parameters=[robot_params],
             output="screen"
         )
     ])

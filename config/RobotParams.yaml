@@ -1,9 +1,10 @@
 /**:
   ros__parameters:
+
     robot_name: "ClubBot_Aver"
 
-    wheel_diameter: 0.08
-    wheel_base: 0.175
+    wheel_diameter: 0.08        # meters
+    wheel_base: 0.175           # meters
 
     left_max_rpm: 107
     right_max_rpm: 107
