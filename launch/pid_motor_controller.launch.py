@@ -10,9 +10,7 @@ def generate_launch_description():
 
     return LaunchDescription([
 
-        # ---------------------------------------------------------
-        # micro-ROS agent (serial transport)
-        # ---------------------------------------------------------
+        # micro-ROS agent
         Node(
             package="micro_ros_agent",
             executable="micro_ros_agent",
@@ -20,9 +18,7 @@ def generate_launch_description():
             output="screen"
         ),
 
-        # ---------------------------------------------------------
-        # ros2_control main controller manager
-        # ---------------------------------------------------------
+        # ros2_control controller manager
         Node(
             package="controller_manager",
             executable="ros2_control_node",
@@ -30,9 +26,7 @@ def generate_launch_description():
             output="screen"
         ),
 
-        # ---------------------------------------------------------
-        # diff drive controller spawner
-        # ---------------------------------------------------------
+        # diff drive controller
         Node(
             package="controller_manager",
             executable="spawner",
@@ -40,18 +34,7 @@ def generate_launch_description():
             output="screen"
         ),
 
-        # ---------------------------------------------------------
-        # hardware interface (your GPIO + motor driver backend)
-        # ---------------------------------------------------------
-        Node(
-            package="clubbot2",
-            executable="hardware_interface",
-            output="screen"
-        ),
-
-        # ---------------------------------------------------------
-        # PID motor controller (your new closed-loop controller)
-        # ---------------------------------------------------------
+        # PID motor controller
         Node(
             package="clubbot2",
             executable="PID_motor_controller",
