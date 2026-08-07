@@ -36,7 +36,7 @@ setup(
             'button_publisher = clubbot2.button_publisher:main',
             'led_subscriber = clubbot2.led_subscriber:main',
             'button_to_led_bridge = clubbot2.button_to_led_bridge:main',
-            'PID_motor_controller' = clubbot2.PID_motor_controller:main',
+            'PID_motor_controller = clubbot2.PID_motor_controller:main',
         ],
     },
 )
