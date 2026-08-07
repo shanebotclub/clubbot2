@@ -10,4 +10,7 @@ Current Launch files:
     ros2 launch clubbot2 button_led_system.launch.py,
   run the motor controller:
     ros2 launch clubbot2 motor_controller.launch.py.
+
+
+Esp32 connected via usb to the raspberry pi with the micro_ros program installed this can be found in my packages 
   
