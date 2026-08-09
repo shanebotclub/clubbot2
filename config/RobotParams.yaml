@@ -20,7 +20,7 @@
     linear_scale: 0.4
     angular_scale: 1.5
 
-    pid_left_p: 10.2
+    pid_left_p: 20.2
     pid_left_i: 0.3
     pid_left_d: 0.05
 
