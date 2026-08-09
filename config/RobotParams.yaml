@@ -24,7 +24,7 @@
     pid_left_i: 0.0
     pid_left_d: 0.0
 
-    pid_right_p: 0.5
+    pid_right_p: 1.5
     pid_right_i: 0.0
     pid_right_d: 0.0
 
