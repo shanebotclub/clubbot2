@@ -4,7 +4,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Int32MultiArray
-import RPi.GPIO as GPIO
+from gpiozero import Motor
 import math
 import time
 
@@ -107,24 +107,10 @@ class MotorController(Node):
         self.get_logger().info("Motor controller parameters loaded.")
 
         # ----------------------------
-        # GPIO setup
+        # gpiozero Motor setup
         # ----------------------------
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.left_forward, GPIO.OUT)
-        GPIO.setup(self.left_backward, GPIO.OUT)
-        GPIO.setup(self.right_forward, GPIO.OUT)
-        GPIO.setup(self.right_backward, GPIO.OUT)
-
-        # PWM setup
-        self.lf_pwm = GPIO.PWM(self.left_forward, 1000)
-        self.lb_pwm = GPIO.PWM(self.left_backward, 1000)
-        self.rf_pwm = GPIO.PWM(self.right_forward, 1000)
-        self.rb_pwm = GPIO.PWM(self.right_backward, 1000)
-
-        self.lf_pwm.start(0)
-        self.lb_pwm.start(0)
-        self.rf_pwm.start(0)
-        self.rb_pwm.start(0)
+        self.left_motor = Motor(forward=self.left_forward, backward=self.left_backward)
+        self.right_motor = Motor(forward=self.right_forward, backward=self.right_backward)
 
         # ----------------------------
         # Encoder state
@@ -208,36 +194,23 @@ class MotorController(Node):
 
         dt = 0.05  # 50 ms loop
 
-        # PID output → duty cycle
+        # PID output → normalized speed (-1.0 to 1.0)
         duty_l = self.left_pid.update(err_l, dt)
         duty_r = self.right_pid.update(err_r, dt)
 
-        # Drive left motor
-        if duty_l >= 0:
-            self.lf_pwm.ChangeDutyCycle(duty_l)
-            self.lb_pwm.ChangeDutyCycle(0)
-        else:
-            self.lf_pwm.ChangeDutyCycle(0)
-            self.lb_pwm.ChangeDutyCycle(-duty_l)
-
-        # Drive right motor
-        if duty_r >= 0:
-            self.rf_pwm.ChangeDutyCycle(duty_r)
-            self.rb_pwm.ChangeDutyCycle(0)
-        else:
-            self.rf_pwm.ChangeDutyCycle(0)
-            self.rb_pwm.ChangeDutyCycle(-duty_r)
+        # Drive motors
+        self.left_motor.value = max(min(duty_l / 100.0, 1.0), -1.0)
+        self.right_motor.value = max(min(duty_r / 100.0, 1.0), -1.0)
 
     # ============================
     # Cleanup
     # ============================
 
     def destroy_node(self):
-        self.lf_pwm.stop()
-        self.lb_pwm.stop()
-        self.rf_pwm.stop()
-        self.rb_pwm.stop()
-        GPIO.cleanup()
+        self.left_motor.stop()
+        self.right_motor.stop()
+        self.left_motor.close()
+        self.right_motor.close()
         super().destroy_node()
 
 
