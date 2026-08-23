@@ -10,6 +10,21 @@ import time
 
 
 # ============================
+# Helper Functions
+# ============================
+
+def scale_duty(duty_val, min_pwm=0.35):
+    """
+    Maps normalized PID output (-1.0 to 1.0) to jump over 
+    the motor's physical deadband threshold.
+    """
+    if abs(duty_val) < 0.01:
+        return 0.0
+    sign = 1 if duty_val > 0 else -1
+    return sign * (min_pwm + (abs(duty_val) * (1.0 - min_pwm)))
+
+
+# ============================
 # PID Controller
 # ============================
 
@@ -180,7 +195,7 @@ class MotorController(Node):
         v_l = v - w * (self.wheel_base / 2.0)
         v_r = v + w * (self.wheel_base / 2.0)
 
-        # Convert linear velocity → RPM
+        # Convert linear velocity -> RPM
         rpm_l_target = (v_l / (math.pi * self.wheel_diameter)) * 60.0
         rpm_r_target = (v_r / (math.pi * self.wheel_diameter)) * 60.0
 
@@ -194,13 +209,17 @@ class MotorController(Node):
 
         dt = 0.05  # 50 ms loop
 
-        # PID output → normalized speed (-1.0 to 1.0)
-        duty_l = self.left_pid.update(err_l, dt)
-        duty_r = self.right_pid.update(err_r, dt)
+        # Raw PID output converted to normalized float (-1.0 to 1.0)
+        duty_l = self.left_pid.update(err_l, dt) / 100.0
+        duty_r = self.right_pid.update(err_r, dt) / 100.0
 
-        # Drive motors
-        self.left_motor.value = max(min(duty_l / 100.0, 1.0), -1.0)
-        self.right_motor.value = max(min(duty_r / 100.0, 1.0), -1.0)
+        # Clamp raw PID values to boundaries
+        norm_l = max(min(duty_l, 1.0), -1.0)
+        norm_r = max(min(duty_r, 1.0), -1.0)
+
+        # Apply deadband mapping to ensure motors receive enough starting power
+        self.left_motor.value = scale_duty(norm_l, min_pwm=0.35)
+        self.right_motor.value = scale_duty(norm_r, min_pwm=0.35)
 
     # ============================
     # Cleanup
