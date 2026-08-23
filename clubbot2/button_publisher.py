@@ -18,11 +18,11 @@ class ButtonPublisher(Node):
         # Publisher for button presses
         self.publisher_ = self.create_publisher(String, 'button_press', 10)
 
-        # Define buttons with GPIO pins
+        # Define buttons with GPIO pins and debounce time
         self.buttons = {
-            'green': Button(6),
-            'blue': Button(5),
-            'yellow': Button(15)
+            'green': Button(6, bounce_time=0.05),
+            'blue': Button(5, bounce_time=0.05),
+            'yellow': Button(15, bounce_time=0.05)
         }
 
         # Attach callbacks
