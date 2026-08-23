@@ -10,13 +10,10 @@ def generate_launch_description():
     # Load your robot parameters
     robot_params = os.path.join(pkg_share, "config", "RobotParams.yaml")
 
-    # Load ros2_control config
-    control_config = os.path.join(pkg_share, "config", "ros2_control.yaml")
-
     return LaunchDescription([
 
         # ---------------------------------------------------------
-        # micro-ROS agent (serial transport)
+        # micro-ROS agent (serial transport to ESP32)
         # ---------------------------------------------------------
         Node(
             package="micro_ros_agent",
@@ -26,27 +23,7 @@ def generate_launch_description():
         ),
 
         # ---------------------------------------------------------
-        # ros2_control controller manager
-        # ---------------------------------------------------------
-        Node(
-            package="controller_manager",
-            executable="ros2_control_node",
-            parameters=[control_config],
-            output="screen"
-        ),
-
-        # ---------------------------------------------------------
-        # diff drive controller spawner
-        # ---------------------------------------------------------
-        Node(
-            package="controller_manager",
-            executable="spawner",
-            arguments=["diff_drive_controller"],
-            output="screen"
-        ),
-
-        # ---------------------------------------------------------
-        # PID motor controller (closed-loop wheel control)
+        # PID motor controller (closed-loop wheel control via gpiozero)
         # ---------------------------------------------------------
         Node(
             package="clubbot2",
