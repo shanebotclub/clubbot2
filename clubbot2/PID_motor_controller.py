@@ -132,7 +132,7 @@ class MotorController(Node):
         self.right_motor = Motor(forward=self.right_forward, backward=self.right_backward)
 
         # ----------------------------
-        # Encoder & Target state
+        # Encoder & Target State
         # ----------------------------
         self.last_left = 0
         self.last_right = 0
@@ -144,7 +144,7 @@ class MotorController(Node):
         self.rpm_r_target = 0.0
 
         # ----------------------------
-        # PID controllers
+        # PID Controllers
         # ----------------------------
         self.left_pid = PID(lp, li, ld)
         self.right_pid = PID(rp, ri, rd)
@@ -211,7 +211,7 @@ class MotorController(Node):
         rpm_l = (v_l / (math.pi * self.wheel_diameter)) * 60.0
         rpm_r = (v_r / (math.pi * self.wheel_diameter)) * 60.0
 
-        # Clamp and store target velocities
+        # Clamp and update target speeds
         self.rpm_l_target = max(min(rpm_l, self.left_max_rpm), -self.left_max_rpm)
         self.rpm_r_target = max(min(rpm_r, self.right_max_rpm), -self.right_max_rpm)
 
@@ -220,7 +220,7 @@ class MotorController(Node):
     # ============================
 
     def control_loop(self):
-        # Override control loop to instantly stop motors if target is zero
+        # Override control loop to instantly stop motors if target is near zero
         if abs(self.rpm_l_target) < 0.1 and abs(self.rpm_r_target) < 0.1:
             self.left_motor.stop()
             self.right_motor.stop()
@@ -230,19 +230,16 @@ class MotorController(Node):
 
         dt = 0.05  # 50 ms loop period
 
-        # PID error calculation
+        # PID calculation
         err_l = self.rpm_l_target - self.left_rpm_actual
         err_r = self.rpm_r_target - self.right_rpm_actual
 
-        # Raw PID output converted to normalized float (-1.0 to 1.0)
         duty_l = self.left_pid.update(err_l, dt) / 100.0
         duty_r = self.right_pid.update(err_r, dt) / 100.0
 
-        # Clamp raw PID values to boundaries
         norm_l = max(min(duty_l, 1.0), -1.0)
         norm_r = max(min(duty_r, 1.0), -1.0)
 
-        # Apply deadband mapping and execute drive
         self.left_motor.value = scale_duty(norm_l, min_pwm=0.35)
         self.right_motor.value = scale_duty(norm_r, min_pwm=0.35)
 
@@ -261,9 +258,13 @@ class MotorController(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = MotorController()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':
