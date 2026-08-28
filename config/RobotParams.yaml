@@ -17,8 +17,8 @@
     right_forward_pin: 24
     right_backward_pin: 25
 
-    linear_scale: 0.4
-    angular_scale: 1.5
+    linear_scale: 0.8
+    angular_scale: 2.0
 
     pid_left_p: 0.15
     pid_left_i: 0.02
