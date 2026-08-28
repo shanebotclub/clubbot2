@@ -8,11 +8,11 @@
     wheel_base: 0.175
 
     # Motor Specifications
-    left_max_rpm: 107
-    right_max_rpm: 107
+    left_max_rpm: 60.0
+    right_max_rpm: 60.0
 
-    left_ticks_per_rotation: 620
-    right_ticks_per_rotation: 620
+    left_ticks_per_rotation: 620.0
+    right_ticks_per_rotation: 620.0
 
     # GPIO Pin Out
     left_forward_pin: 18
@@ -28,7 +28,7 @@
     min_pwm_left: 0.20
     min_pwm_right: 0.24
 
-    # PID Tuning Parameters
+     # PID Tuning Parameters
     pid_left_p: 0.25
     pid_left_i: 0.02
     pid_left_d: 0.001
@@ -36,4 +36,3 @@
     pid_right_p: 0.35
     pid_right_i: 0.02
     pid_right_d: 0.001
-
