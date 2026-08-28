@@ -36,8 +36,9 @@ class PidMotorController(Node):
         self.declare_parameter('wheel_diameter', 0.08)
         self.declare_parameter('wheel_base', 0.175)
 
-        self.declare_parameter('left_max_rpm', 60)
-        self.declare_parameter('right_max_rpm', 60)
+
+        self.declare_parameter('left_max_rpm', 60.0)
+        self.declare_parameter('right_max_rpm', 60.0)
 
         self.declare_parameter('left_ticks_per_rotation', 620)
         self.declare_parameter('right_ticks_per_rotation', 620)
