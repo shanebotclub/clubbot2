@@ -115,7 +115,7 @@ class PidMotorController(Node):
         self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
         self.create_subscription(Int32MultiArray, '/wheel_ticks', self.encoder_callback, 10)
 
-        # 10 Hz Control Loop Period (100ms reduces tick calculation noise)
+        # 10 Hz Control Loop Period
         self.loop_period = 0.10
         self.last_loop_time = time.time()
         self.create_timer(self.loop_period, self.control_loop)
@@ -150,6 +150,20 @@ class PidMotorController(Node):
         if dt <= 0.0:
             return
 
+        # Immediate Stop Check: Kill motor output instantly if command target is zero
+        if abs(self.target_rpm_left) < 0.5 and abs(self.target_rpm_right) < 0.5:
+            self.left_motor.stop()
+            self.right_motor.stop()
+            self.actual_rpm_left = 0.0
+            self.actual_rpm_right = 0.0
+            self.integral_left = 0.0
+            self.integral_right = 0.0
+            self.prev_error_left = 0.0
+            self.prev_error_right = 0.0
+            self.prev_left_tick_count = self.left_tick_count
+            self.prev_right_tick_count = self.right_tick_count
+            return
+
         # 1. Calculate raw measured speed in RPM
         delta_left = self.left_tick_count - self.prev_left_tick_count
         delta_right = self.right_tick_count - self.prev_right_tick_count
@@ -160,20 +174,10 @@ class PidMotorController(Node):
         raw_rpm_left = (delta_left / self.left_ticks_per_rotation) / dt * 60.0
         raw_rpm_right = (delta_right / self.right_ticks_per_rotation) / dt * 60.0
 
-        # 2. Low-Pass Filter (EMA) to eliminate encoder tick quantization noise
-        alpha = 0.3  # Smoothing factor
+        # 2. Low-Pass Filter (EMA)
+        alpha = 0.3
         self.actual_rpm_left = (alpha * raw_rpm_left) + ((1.0 - alpha) * self.actual_rpm_left)
         self.actual_rpm_right = (alpha * raw_rpm_right) + ((1.0 - alpha) * self.actual_rpm_right)
-
-        # Stop override logic
-        if abs(self.target_rpm_left) < 0.1 and abs(self.target_rpm_right) < 0.1:
-            self.left_motor.stop()
-            self.right_motor.stop()
-            self.integral_left = 0.0
-            self.integral_right = 0.0
-            self.prev_error_left = 0.0
-            self.prev_error_right = 0.0
-            return
 
         # 3. Calculate Normalized Errors [-1.0 to 1.0]
         err_l = (self.target_rpm_left - self.actual_rpm_left) / self.left_max_rpm
