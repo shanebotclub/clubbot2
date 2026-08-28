@@ -169,7 +169,7 @@ class MotorController(Node):
         norm_r = self.right_pid.update(err_r, dt)
 
         self.left_motor.value = scale_duty(norm_l, min_pwm=0.22)
-        self.right_motor.value = scale_duty(norm_r, min_pwm=0.22)
+        self.right_motor.value = scale_duty(norm_r, min_pwm=0.24)
 
     def destroy_node(self):
         self.left_motor.stop()
