@@ -6,8 +6,8 @@
     wheel_diameter: 0.08        # meters
     wheel_base: 0.175           # meters
 
-    left_max_rpm: 60
-    right_max_rpm: 60 
+    left_max_rpm: 107
+    right_max_rpm: 107
 
     left_ticks_per_rotation: 620
     right_ticks_per_rotation: 620
