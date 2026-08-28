@@ -10,7 +10,7 @@ Current Launch files:
   run the motor controller:
     ros2 launch clubbot2 motor_controller.launch.py.
   run PID motor controller:
-    ros2 launch clubbot2 pid_motor_controller.launch.py
+    ros2 launch clubbot2 pid_motor_controller.launch.py robot:=your robot name
 
 
 Esp32 connected via usb to the raspberry pi with the micro_ros program installed this can be found in my packages 
