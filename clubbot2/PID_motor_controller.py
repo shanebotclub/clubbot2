@@ -40,8 +40,8 @@ class PidMotorController(Node):
         self.declare_parameter('left_max_rpm', 60.0)
         self.declare_parameter('right_max_rpm', 60.0)
 
-        self.declare_parameter('left_ticks_per_rotation', 620)
-        self.declare_parameter('right_ticks_per_rotation', 620)
+        self.declare_parameter('left_ticks_per_rotation', 620.0)
+        self.declare_parameter('right_ticks_per_rotation', 620.0)
 
         self.declare_parameter('left_forward_pin', 18)
         self.declare_parameter('left_backward_pin', 23)
