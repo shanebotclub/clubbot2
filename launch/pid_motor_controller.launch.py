@@ -1,16 +1,30 @@
-from launch import LaunchDescription
-from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
 import os
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
 
-    pkg_share = get_package_share_directory("clubbot2")
+    # 1. Declare Launch Arguments
+    # Allows passing 'robot:=aver' or specifying a custom YAML path dynamically
+    robot_name_arg = DeclareLaunchArgument(
+        'robot',
+        default_value='aver',
+        description='Robot parameter file prefix (e.g. "aver" -> RobotParams_aver.yaml or default RobotParams.yaml)'
+    )
 
-    # Load your robot parameters
-    robot_params = os.path.join(pkg_share, "config", "RobotParams.yaml")
+    # Path to the parameter file dynamically built from the launch argument
+    # Defaults to loading 'config/RobotParams.yaml' if robot parameter matches default
+    robot_params = PathJoinSubstitution([
+        FindPackageShare('clubbot2'),
+        'config',
+        'RobotParams.yaml'
+    ])
 
     return LaunchDescription([
+        robot_name_arg,
 
         # ---------------------------------------------------------
         # micro-ROS agent (serial transport to ESP32)

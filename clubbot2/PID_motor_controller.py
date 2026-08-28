@@ -1,193 +1,242 @@
-#!/usr/bin/env python3
-
+#!/usr me/bin/env python3
+import math
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Int32MultiArray
-from gpiozero import Motor
-import math
-import time
+from std_msgs.msg import Int32
+from gpiozero import PWMOutputDevice, OutputDevice
 
-def scale_duty(duty_val, min_pwm=0.08):
-    """Smoothly scale PWM over min_pwm without step-function kicks."""
-    if abs(duty_val) < 0.01:
+
+def scale_duty(val, min_pwm=0.20):
+    """
+    Applies deadband compensation and scales normalized motor command (-1.0 to 1.0)
+    to duty cycle (min_pwm to 1.0). Returns 0.0 when input velocity is zero.
+    """
+    if abs(val) < 1e-4:
         return 0.0
-    sign = 1 if duty_val > 0 else -1
-    # Scaled linearly over deadband threshold
-    return sign * (min_pwm + (abs(duty_val) * (1.0 - min_pwm)))
 
-class PID:
-    def __init__(self, kp, ki, kd, limit=1.0):
-        self.kp = kp
-        self.ki = ki
-        self.kd = kd
-        self.limit = limit
-        self.integral = 0.0
-        self.prev_error = 0.0
+    magnitude = abs(val)
+    duty = min_pwm + magnitude * (1.0 - min_pwm)
+    return max(min_pwm, min(1.0, duty))
 
-    def update(self, error, dt):
-        if dt <= 0.0:
-            return 0.0
 
-        self.integral += error * dt
-        # Tight anti-windup clamping
-        self.integral = max(min(self.integral, 0.2), -0.2)
+class Motor:
+    """Helper class to control directional pin pairs via GPIO Zero."""
+    def __init__(self, forward_pin: int, backward_pin: int):
+        self.forward = PWMOutputDevice(forward_pin)
+        self.backward = PWMOutputDevice(backward_pin)
 
-        derivative = (error - self.prev_error) / dt
-        output = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative)
-        
-        self.prev_error = error
-        return max(min(output, self.limit), -self.limit)
+    @property
+    def value(self):
+        # Positive represents forward duty, negative represents backward duty
+        return self.forward.value - self.backward.value
 
-    def reset(self):
-        self.integral = 0.0
-        self.prev_error = 0.0
+    @value.setter
+    def value(self, val: float):
+        val = max(-1.0, min(1.0, float(val)))
+        if val > 0:
+            self.forward.value = val
+            self.backward.value = 0.0
+        elif val < 0:
+            self.forward.value = 0.0
+            self.backward.value = abs(val)
+        else:
+            self.forward.value = 0.0
+            self.backward.value = 0.0
 
-class MotorController(Node):
+
+class PidMotorController(Node):
     def __init__(self):
-        super().__init__('motor_controller')
+        super().__init__('pid_motor_controller')
 
-        # Declare parameters
+        # ----------------------------------------------------------------------
+        # Declare Parameters with Defaults
+        # ----------------------------------------------------------------------
+        self.declare_parameter('robot_name', 'aver')
         self.declare_parameter('wheel_diameter', 0.08)
         self.declare_parameter('wheel_base', 0.175)
-        self.declare_parameter('left_max_rpm', 60)   # Matched to 60RPM Motor spec
-        self.declare_parameter('right_max_rpm', 60)  # Matched to 60RPM Motor spec
+
+        self.declare_parameter('left_max_rpm', 60)
+        self.declare_parameter('right_max_rpm', 60)
+
         self.declare_parameter('left_ticks_per_rotation', 620)
         self.declare_parameter('right_ticks_per_rotation', 620)
+
         self.declare_parameter('left_forward_pin', 18)
         self.declare_parameter('left_backward_pin', 23)
         self.declare_parameter('right_forward_pin', 24)
         self.declare_parameter('right_backward_pin', 25)
-        self.declare_parameter('linear_scale', 0.4)
-        self.declare_parameter('angular_scale', 1.5)
 
-        self.declare_parameter('pid_left_p', 0.15)
+        self.declare_parameter('linear_scale', 0.3)
+        self.declare_parameter('angular_scale', 2.0)
+
+        # Deadband Compensation Parameters
+        self.declare_parameter('min_pwm_left', 0.20)
+        self.declare_parameter('min_pwm_right', 0.24)
+
+        # PID Parameters
+        self.declare_parameter('pid_left_p', 0.25)
         self.declare_parameter('pid_left_i', 0.02)
         self.declare_parameter('pid_left_d', 0.001)
-        self.declare_parameter('pid_right_p', 0.15)
+
+        self.declare_parameter('pid_right_p', 0.35)
         self.declare_parameter('pid_right_i', 0.02)
         self.declare_parameter('pid_right_d', 0.001)
 
-        # Read Parameters
+        # ----------------------------------------------------------------------
+        # Fetch Parameters
+        # ----------------------------------------------------------------------
+        self.robot_name = self.get_parameter('robot_name').value
         self.wheel_diameter = self.get_parameter('wheel_diameter').value
         self.wheel_base = self.get_parameter('wheel_base').value
+
         self.left_max_rpm = self.get_parameter('left_max_rpm').value
         self.right_max_rpm = self.get_parameter('right_max_rpm').value
+
         self.left_ticks_per_rotation = self.get_parameter('left_ticks_per_rotation').value
         self.right_ticks_per_rotation = self.get_parameter('right_ticks_per_rotation').value
 
-        self.left_forward = self.get_parameter('left_forward_pin').value
-        self.left_backward = self.get_parameter('left_backward_pin').value
-        self.right_forward = self.get_parameter('right_forward_pin').value
-        self.right_backward = self.get_parameter('right_backward_pin').value
+        left_fwd_pin = self.get_parameter('left_forward_pin').value
+        left_bwd_pin = self.get_parameter('left_backward_pin').value
+        right_fwd_pin = self.get_parameter('right_forward_pin').value
+        right_bwd_pin = self.get_parameter('right_backward_pin').value
 
-        self.linear_scale = self.get_parameter('linear_scale').value
-        self.angular_scale = self.get_parameter('angular_scale').value
+        # Fetch Deadband Parameters
+        self.min_pwm_left = self.get_parameter('min_pwm_left').value
+        self.min_pwm_right = self.get_parameter('min_pwm_right').value
 
-        lp = self.get_parameter('pid_left_p').value
-        li = self.get_parameter('pid_left_i').value
-        ld = self.get_parameter('pid_left_d').value
-        rp = self.get_parameter('pid_right_p').value
-        ri = self.get_parameter('pid_right_i').value
-        rd = self.get_parameter('pid_right_d').value
+        # Fetch PID Parameters
+        self.kp_left = self.get_parameter('pid_left_p').value
+        self.ki_left = self.get_parameter('pid_left_i').value
+        self.kd_left = self.get_parameter('pid_left_d').value
 
-        # Hardware Setup
-        self.left_motor = Motor(forward=self.left_forward, backward=self.left_backward)
-        self.right_motor = Motor(forward=self.right_forward, backward=self.right_backward)
+        self.kp_right = self.get_parameter('pid_right_p').value
+        self.ki_right = self.get_parameter('pid_right_i').value
+        self.kd_right = self.get_parameter('pid_right_d').value
 
-        # Trackers
-        self.last_left_ticks = 0
-        self.last_right_ticks = 0
-        self.last_loop_time = time.time()
-        self.left_rpm_actual = 0.0
-        self.right_rpm_actual = 0.0
-        self.rpm_l_target = 0.0
-        self.rpm_r_target = 0.0
+        # ----------------------------------------------------------------------
+        # Hardware & PID Initialization
+        # ----------------------------------------------------------------------
+        self.left_motor = Motor(left_fwd_pin, left_bwd_pin)
+        self.right_motor = Motor(right_fwd_pin, right_bwd_pin)
 
-        self.left_pid = PID(lp, li, ld)
-        self.right_pid = PID(rp, ri, rd)
+        # Derived Max Angular Velocities (rad/s)
+        self.max_w_left = (self.left_max_rpm * 2.0 * math.pi) / 60.0
+        self.max_w_right = (self.right_max_rpm * 2.0 * math.pi) / 60.0
 
-        # ROS Setup
-        self.encoder_sub = self.create_subscription(Int32MultiArray, '/wheel_ticks', self.encoder_callback, 10)
-        self.subscription = self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
-        
-        # 10 Hz Control Loop (100ms interval fits 60RPM encoder sampling better)
-        self.control_timer = self.create_timer(0.10, self.control_loop)
+        # Encoder state tracking
+        self.left_tick_count = 0
+        self.right_tick_count = 0
+        self.prev_left_tick_count = 0
+        self.prev_right_tick_count = 0
 
-    def encoder_callback(self, msg):
-        self.last_left_ticks = msg.data[0]
-        self.last_right_ticks = msg.data[1]
+        # Target Wheel Angular Velocities (rad/s)
+        self.target_w_left = 0.0
+        self.target_w_right = 0.0
 
-    def cmd_vel_callback(self, msg):
-        v = msg.linear.x * self.linear_scale
-        w = msg.angular.z * self.angular_scale
+        # PID Integral & Error Accumulators
+        self.integral_left = 0.0
+        self.integral_right = 0.0
+        self.prev_error_left = 0.0
+        self.prev_error_right = 0.0
 
-        v_l = v - w * (self.wheel_base / 2.0)
-        v_r = v + w * (self.wheel_base / 2.0)
+        # ----------------------------------------------------------------------
+        # ROS 2 Subscriptions & Timers
+        # ----------------------------------------------------------------------
+        self.create_subscription(Twist, 'cmd_vel', self.cmd_vel_callback, 10)
+        self.create_subscription(Int32, 'left_ticks', self.left_ticks_callback, 10)
+        self.create_subscription(Int32, 'right_ticks', self.right_ticks_callback, 10)
 
-        rpm_l = (v_l / (math.pi * self.wheel_diameter)) * 60.0
-        rpm_r = (v_r / (math.pi * self.wheel_diameter)) * 60.0
+        # Main Control Loop Frequency (e.g., 20 Hz -> dt = 0.05s)
+        self.loop_period = 0.05
+        self.timer = self.create_timer(self.loop_period, self.control_loop)
 
-        self.rpm_l_target = max(min(rpm_l, self.left_max_rpm), -self.left_max_rpm)
-        self.rpm_r_target = max(min(rpm_r, self.right_max_rpm), -self.right_max_rpm)
+        self.get_logger().info(
+            f"PID Motor Controller Node initialized for robot: '{self.robot_name}' "
+            f"(Min PWM Left: {self.min_pwm_left}, Min PWM Right: {self.min_pwm_right})"
+        )
+
+    def cmd_vel_callback(self, msg: Twist):
+        v = msg.linear.x
+        w = msg.angular.z
+
+        # Differential drive kinematics -> Target wheel angular velocities (rad/s)
+        v_left = v - (w * self.wheel_base / 2.0)
+        v_right = v + (w * self.wheel_base / 2.0)
+
+        r = self.wheel_diameter / 2.0
+        self.target_w_left = v_left / r
+        self.target_w_right = v_right / r
+
+    def left_ticks_callback(self, msg: Int32):
+        self.left_tick_count = msg.data
+
+    def right_ticks_callback(self, msg: Int32):
+        self.right_tick_count = msg.data
 
     def control_loop(self):
-        now = time.time()
-        dt = now - self.last_loop_time
-        self.last_loop_time = now
+        dt = self.loop_period
 
-        if dt <= 0:
-            return
+        # 1. Calculate measured wheel angular velocity (rad/s)
+        delta_left_ticks = self.left_tick_count - self.prev_left_tick_count
+        delta_right_ticks = self.right_tick_count - self.prev_right_tick_count
 
-        # Calculate raw speed
-        dl = self.last_left_ticks - getattr(self, 'prev_l_ticks', self.last_left_ticks)
-        dr = self.last_right_ticks - getattr(self, 'prev_r_ticks', self.last_right_ticks)
-        self.prev_l_ticks = self.last_left_ticks
-        self.prev_r_ticks = self.last_right_ticks
+        self.prev_left_tick_count = self.left_tick_count
+        self.prev_right_tick_count = self.right_tick_count
 
-        raw_rpm_l = (dl / self.left_ticks_per_rotation) / dt * 60.0
-        raw_rpm_r = (dr / self.right_ticks_per_rotation) / dt * 60.0
+        rotations_left = delta_left_ticks / float(self.left_ticks_per_rotation)
+        rotations_right = delta_right_ticks / float(self.right_ticks_per_rotation)
 
-        # Apply Low-Pass Filter (EMA) to eliminate encoder noise stutter
-        alpha = 0.3  # Smoothing factor (0.1 = smooth/laggy, 0.9 = noisy/fast)
-        self.left_rpm_actual = (alpha * raw_rpm_l) + ((1.0 - alpha) * self.left_rpm_actual)
-        self.right_rpm_actual = (alpha * raw_rpm_r) + ((1.0 - alpha) * self.right_rpm_actual)
+        measured_w_left = (rotations_left * 2.0 * math.pi) / dt
+        measured_w_right = (rotations_right * 2.0 * math.pi) / dt
 
-        # Stop override
-        if abs(self.rpm_l_target) < 0.1 and abs(self.rpm_r_target) < 0.1:
-            self.left_motor.stop()
-            self.right_motor.stop()
-            self.left_pid.reset()
-            self.right_pid.reset()
-            return
+        # 2. Compute PID Control Output for Left Motor
+        error_left = self.target_w_left - measured_w_left
+        self.integral_left += error_left * dt
+        derivative_left = (error_left - self.prev_error_left) / dt
+        self.prev_error_left = error_left
 
-        # Calculate normalized error
-        err_l = (self.rpm_l_target - self.left_rpm_actual) / self.left_max_rpm
-        err_r = (self.rpm_r_target - self.right_rpm_actual) / self.right_max_rpm
+        u_left = (self.kp_left * error_left) + (self.ki_left * self.integral_left) + (self.kd_left * derivative_left)
 
-        norm_l = self.left_pid.update(err_l, dt)
-        norm_r = self.right_pid.update(err_r, dt)
+        # 3. Compute PID Control Output for Right Motor
+        error_right = self.target_w_right - measured_w_right
+        self.integral_right += error_right * dt
+        derivative_right = (error_right - self.prev_error_right) / dt
+        self.prev_error_right = error_right
 
-        self.left_motor.value = scale_duty(norm_l, min_pwm=0.22)
-        self.right_motor.value = scale_duty(norm_r, min_pwm=0.24)
+        u_right = (self.kp_right * error_right) + (self.ki_right * self.integral_right) + (self.kd_right * derivative_right)
 
-    def destroy_node(self):
-        self.left_motor.stop()
-        self.right_motor.stop()
-        self.left_motor.close()
-        self.right_motor.close()
-        super().destroy_node()
+        # 4. Normalize PID output relative to max velocity capabilities (-1.0 to 1.0)
+        norm_l = u_left / self.max_w_left
+        norm_r = u_right / self.max_w_right
+
+        # 5. Apply per-side deadband compensation scaling & set hardware duty cycles
+        if abs(self.target_w_left) < 1e-4:
+            self.left_motor.value = 0.0
+            self.integral_left = 0.0  # Reset integrator when stopped
+        else:
+            self.left_motor.value = scale_duty(norm_l, min_pwm=self.min_pwm_left)
+
+        if abs(self.target_w_right) < 1e-4:
+            self.right_motor.value = 0.0
+            self.integral_right = 0.0  # Reset integrator when stopped
+        else:
+            self.right_motor.value = scale_duty(norm_r, min_pwm=self.min_pwm_right)
+
 
 def main(args=None):
     rclpy.init(args=args)
-    node = MotorController()
+    node = PidMotorController()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     finally:
+        node.left_motor.value = 0.0
+        node.right_motor.value = 0.0
         node.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
