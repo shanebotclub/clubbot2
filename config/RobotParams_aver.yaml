@@ -25,8 +25,8 @@
     angular_scale: 2.0
 
     # Deadband Compensation Parameters (Per-Robot Minimum PWM)
-    min_pwm_left: 0.50
-    min_pwm_right: 0.64
+    min_pwm_left: 1.50
+    min_pwm_right: 1.64
 
      # PID Tuning Parameters
     pid_left_p: 0.25
