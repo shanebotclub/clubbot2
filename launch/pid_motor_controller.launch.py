@@ -10,7 +10,7 @@ def generate_launch_description():
     # Launch argument defaulting to 'aver'
     robot_arg = DeclareLaunchArgument(
         'robot',
-        default_value='aver',
+        default_value='clubbot',
         description='Robot name identifier for YAML parameter loading'
     )
 
