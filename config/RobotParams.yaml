@@ -21,8 +21,8 @@
     right_backward_pin: 25
 
     # Teleop Command Scales
-    linear_scale: 0.15
-    angular_scale: 1.0
+    linear_scale: 0.0
+    angular_scale: 0.0
 
     # Deadband Compensation Parameters (Per-Robot Minimum PWM)
     min_pwm_left: 0.28
