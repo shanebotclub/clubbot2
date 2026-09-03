@@ -184,7 +184,7 @@ class PidMotorController(Node):
         raw_rpm_right = (delta_right / self.ticks_per_rev_r) / dt * 60.0
 
         # 2. Continuous EMA Low-Pass Filter
-        alpha = 0.3
+        alpha = 0.1
         self.actual_rpm_left = (alpha * raw_rpm_left) + ((1.0 - alpha) * self.actual_rpm_left)
         self.actual_rpm_right = (alpha * raw_rpm_right) + ((1.0 - alpha) * self.actual_rpm_right)
 
