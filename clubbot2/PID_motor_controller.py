@@ -12,7 +12,7 @@ from rcl_interfaces.msg import SetParametersResult
 
 def scale_duty(val, min_pwm=0.20):
     """Scales normalized output past static friction deadband while maintaining sign."""
-    if abs(val) < 0.01:
+    if abs(val) < 0.05:
         return 0.0
     sign = 1.0 if val > 0 else -1.0
     magnitude = abs(val)
