@@ -1,40 +1,82 @@
 /**:
+  /**:
   ros__parameters:
-    # Robot Identification
-    robot_name: "aver"
+    # =========================================================================
+    # 1. ROBOT IDENTIFICATION
+    # =========================================================================
+    # Identifier for this robot profile (Default fallback for team members)
+    robot_name: "clubbot"
 
-    # Physical Chassis Parameters
-    wheel_diameter: 0.08
-    wheel_base: 0.175
+    # =========================================================================
+    # 2. PHYSICAL CHASSIS PARAMETERS
+    # =========================================================================
+    # Physical measurements of the robot chassis in meters.
+    # Measure accurately with calipers/ruler—incorrect values distort RPM & Odometry!
+    wheel_diameter: 0.08   # Outer diameter of drive wheels (in meters, e.g., 8cm = 0.08)
+    wheel_base: 0.175      # Distance between the center of left and right wheels (in meters)
 
-    # Motor Specifications
-    left_max_rpm: 107
-    right_max_rpm: 107
+    # =========================================================================
+    # 3. MOTOR & ENCODER SPECIFICATIONS
+    # =========================================================================
+    # Maximum no-load RPM of motors at full operating voltage (12V/6V).
+    left_max_rpm: 107.0
+    right_max_rpm: 107.0
 
-    left_ticks_per_rotation: 620
-    right_ticks_per_rotation: 620
+    # Total encoder pulse count recorded for one complete physical wheel rotation.
+    # (Tested by spinning wheel manually 360 degrees and reading /wheel_ticks count)
+    left_ticks_per_rotation: 620.0
+    right_ticks_per_rotation: 620.0
 
-    # GPIO Pin Out
+    # =========================================================================
+    # 4. RASPBERRY PI GPIO PINOUT MAPPING
+    # =========================================================================
+    # Raspberry Pi GPIO pin numbers assigned to motor driver direction inputs.
+    # Update these if your motor driver wiring differs from default ClubBot spec.
     left_forward_pin: 18
     left_backward_pin: 23
     right_forward_pin: 24
     right_backward_pin: 25
 
-    # Teleop Command Scales
-    linear_scale: 0.28
+    # =========================================================================
+    # 5. TELEOP & VELOCITY COMMAND SCALING
+    # =========================================================================
+    # Multipliers applied to incoming geometry_msgs/Twist command velocities.
+    # - linear_scale: Scales m/s forward/backward speed. Lower values = slower max speed.
+    # - angular_scale: Scales rad/s turning responsiveness.
+    linear_scale: 0.4
     angular_scale: 1.0
 
-    # Deadband Compensation Parameters (Per-Robot Minimum PWM)
-    min_pwm_left: 0.12
-    min_pwm_right: 0.12
+    # =========================================================================
+    # 6. SAFETY & WATCHDOG TIMEOUT
+    # =========================================================================
+    # Time window (in seconds) to bridge gaps between discrete teleop key-repeat messages.
+    # If no new /cmd_vel message arrives within this threshold, motors automatically stop.
+    cmd_timeout: 0.6
 
-    # PID Tuning Parameters
-    pid_left_p: 0.25
-    pid_left_i: 0.001
-    pid_left_d: 0.0
+    # =========================================================================
+    # 7. MINIMUM PWM DEADBAND COMPENSATION
+    # =========================================================================
+    # Minimum duty cycle required to overcome motor static friction and gear friction.
+    # TUNING TIP: 
+    #   - If your robot hums/buzzes without moving when starting, INCREASE this value.
+    #   - If your robot jumps/jolts aggressively when starting, DECREASE this value.
+    min_pwm_left: 0.20
+    min_pwm_right: 0.24
 
-    pid_right_p: 0.35
-    pid_right_i: 0.001
-    pid_right_d: 0.0
-  
+    # =========================================================================
+    # 8. FEED-FORWARD + PID TUNING PARAMETERS
+    # =========================================================================
+    # - P (Proportional Gain): Corrects velocity errors based on immediate difference.
+    #     Higher values make response sharper, but setting too high causes oscilations.
+    # - I (Integral Gain): Eliminates steady-state speed drift over time.
+    #     Keep very small (e.g., 0.001 - 0.005) to prevent pulsing and windup surging.
+    # - D (Derivative Gain): Dampens rate of change in error.
+    #     RECOMMENDED TO LEAVE AT 0.00—encoder tick quantization noise will cause stuttering!
+    pid_left_p: 0.12
+    pid_left_i: 0.005
+    pid_left_d: 0.00
+
+    pid_right_p: 0.12
+    pid_right_i: 0.005
+    pid_right_d: 0.00
 
