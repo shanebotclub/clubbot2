@@ -47,7 +47,7 @@ class PidMotorController(Node):
         self.declare_parameter('pid_right_p', 0.35)
         self.declare_parameter('pid_right_i', 0.02)
         self.declare_parameter('pid_right_d', 0.001)
-        self.declare_parameter('cmd_timeout', 1.0)  # Timeout in seconds to bridge key-repeat gaps
+        self.declare_parameter('cmd_timeout', 0.6)  # Timeout in seconds to bridge key-repeat gaps
 
         # Cache parameters locally once on startup
         self.load_cached_parameters()
@@ -92,7 +92,7 @@ class PidMotorController(Node):
         self.last_loop_time = time.time()
         self.create_timer(self.loop_period, self.control_loop)
 
-        self.get_logger().info("PID Motor Controller Initialized with Watchdog & Cached Parameters.")
+        self.get_logger().info("PID Motor Controller Initialized with Feed-Forward, Watchdog & Cached Parameters.")
 
     def load_cached_parameters(self):
         """Reads parameters once into memory to eliminate runtime parameter retrieval overhead."""
@@ -183,7 +183,7 @@ class PidMotorController(Node):
         raw_rpm_left = (delta_left / self.ticks_per_rev_l) / dt * 60.0
         raw_rpm_right = (delta_right / self.ticks_per_rev_r) / dt * 60.0
 
-        # 2. Continuous EMA Low-Pass Filter
+        # 2. Continuous EMA Low-Pass Filter (Alpha = 0.1 for high smoothing)
         alpha = 0.1
         self.actual_rpm_left = (alpha * raw_rpm_left) + ((1.0 - alpha) * self.actual_rpm_left)
         self.actual_rpm_right = (alpha * raw_rpm_right) + ((1.0 - alpha) * self.actual_rpm_right)
@@ -212,9 +212,12 @@ class PidMotorController(Node):
         self.prev_error_left = err_l
         self.prev_error_right = err_r
 
-        # 6. Compute PID Output
-        u_l = (self.kp_l * err_l) + (self.ki_l * self.integral_left) + (self.kd_l * deriv_l)
-        u_r = (self.kp_r * err_r) + (self.ki_r * self.integral_right) + (self.kd_r * deriv_r)
+        # 6. Compute Feed-Forward + PID Output
+        ff_l = self.target_rpm_left / self.left_max_rpm
+        ff_r = self.target_rpm_right / self.right_max_rpm
+
+        u_l = ff_l + (self.kp_l * err_l) + (self.ki_l * self.integral_left) + (self.kd_l * deriv_l)
+        u_r = ff_r + (self.kp_r * err_r) + (self.ki_r * self.integral_right) + (self.kd_r * deriv_r)
 
         norm_l = max(-1.0, min(1.0, u_l))
         norm_r = max(-1.0, min(1.0, u_r))
