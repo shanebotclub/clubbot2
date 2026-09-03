@@ -47,7 +47,7 @@ class PidMotorController(Node):
         self.declare_parameter('pid_right_p', 0.35)
         self.declare_parameter('pid_right_i', 0.02)
         self.declare_parameter('pid_right_d', 0.001)
-        self.declare_parameter('cmd_timeout', 0.6)  # Timeout in seconds to bridge key-repeat gaps
+        self.declare_parameter('cmd_timeout', 0.8)  # Timeout in seconds to bridge key-repeat gaps
 
         # Cache parameters locally once on startup
         self.load_cached_parameters()
