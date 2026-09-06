@@ -20,9 +20,10 @@ class ButtonPublisher(Node):
 
         # Define buttons with GPIO pins and debounce time
         self.buttons = {
-            'green': Button(6, bounce_time=0.05),
-            'blue': Button(5, bounce_time=0.05),
-            'yellow': Button(15, bounce_time=0.05)
+            'green': Button(6, bounce_time=0.1),
+            'blue': Button(5, bounce_time=0.1),
+            'yellow': Button(15, bounce_time=0.1),
+            'red' : Button(4, bounce_time=0.1)
         }
 
         # Attach callbacks
