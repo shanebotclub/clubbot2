@@ -23,7 +23,8 @@ class ButtonToLEDbridge(Node):
         self.map = {
             'green': 'green',
             'blue': 'blue',
-            'yellow': 'yellow'
+            'yellow': 'yellow',
+            'red' : 'red'
         }
 
         self.get_logger().info("Button to LED bridge started")
